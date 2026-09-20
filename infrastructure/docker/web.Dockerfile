@@ -21,8 +21,12 @@ WORKDIR /repo
 COPY --from=build /repo/package.json /repo/pnpm-lock.yaml /repo/pnpm-workspace.yaml /repo/.npmrc ./
 COPY --from=build /repo/node_modules ./node_modules
 COPY --from=build /repo/packages ./packages
-COPY --from=build /repo/apps/web ./apps/web
+COPY --from=build --chown=node:node /repo/apps/web ./apps/web
 
 USER node
 EXPOSE 3000
-CMD ["pnpm", "--filter", "@blackcinnamon/web", "start"]
+# Launch Next.js directly. Invoking pnpm here triggers a workspace
+# reconciliation install (this image intentionally omits apps/api) which the
+# unprivileged user cannot perform.
+WORKDIR /repo/apps/web
+CMD ["node", "node_modules/next/dist/bin/next", "start", "--port", "3000"]
