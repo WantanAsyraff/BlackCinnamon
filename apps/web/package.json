@@ -1,0 +1,33 @@
+{
+  "name": "@blackcinnamon/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rimraf .next coverage .turbo"
+  },
+  "dependencies": {
+    "@blackcinnamon/contracts": "workspace:*",
+    "@blackcinnamon/design-tokens": "workspace:*",
+    "@blackcinnamon/validation": "workspace:*",
+    "next": "^15.1.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@blackcinnamon/eslint-config": "workspace:*",
+    "@blackcinnamon/tsconfig": "workspace:*",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "eslint": "^9.17.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

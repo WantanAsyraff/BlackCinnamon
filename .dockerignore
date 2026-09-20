@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+.github
+
+# Dependencies / build output (reinstalled inside the image)
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/out
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Docs and tooling not needed for the image
+PLANNING.md
+README.md
+docs
+infrastructure
+.vscode
+.idea

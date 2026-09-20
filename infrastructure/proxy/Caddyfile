@@ -1,0 +1,19 @@
+# Local development reverse proxy.
+#
+# Routes:
+#   /health, /ready, /api/*  -> NestJS API
+#   everything else          -> Next.js web
+#
+# Note: in production, terminate TLS here and never proxy the Minecraft
+# RestApi port or the RCON port (see PLANNING.md section 46).
+
+:80 {
+	@api path /health* /ready* /api/*
+	handle @api {
+		reverse_proxy api:3001
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}
