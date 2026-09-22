@@ -5,7 +5,7 @@ server-data platform. See [PLANNING.md](./PLANNING.md) for the full plan.
 
 - **Frontend:** Next.js (App Router, TypeScript)
 - **Backend:** NestJS (TypeScript)
-- **Data:** PostgreSQL + Redis
+- **Data:** PostgreSQL (Prisma) + Redis
 - **Minecraft read path:** RestApi plugin (polled by NestJS)
 - **Minecraft fulfilment:** private RCON + LuckPerms
 - **Payments:** ToyyibPay
@@ -51,6 +51,17 @@ pnpm install
 
 ```bash
 docker compose up -d postgres redis
+```
+
+### Database migrations (Prisma)
+
+The schema lives in `apps/api/prisma/schema.prisma`. Set `DATABASE_URL` (already
+defaulted in `.env.example`) and run:
+
+```bash
+pnpm --filter @blackcinnamon/api db:migrate    # create + apply a migration (dev)
+pnpm --filter @blackcinnamon/api db:generate   # regenerate the Prisma client
+pnpm --filter @blackcinnamon/api db:deploy     # apply migrations (production/CI)
 ```
 
 ### Run the apps

@@ -48,8 +48,72 @@ export type PaymentStatus =
 
 export type FulfilmentStatus = 'PENDING' | 'RETRYING' | 'DELIVERED' | 'FAILED';
 
+export type EntitlementType = 'RANK' | 'COSMETIC' | 'OTHER';
+
+export type EntitlementStatus = 'ACTIVE' | 'PENDING_DELIVERY' | 'EXPIRED' | 'REVOKED';
+
 export interface MinecraftIdentity {
   username: string;
   uuid: string;
   avatarUrl?: string | null;
+}
+
+export interface CheckoutRequest {
+  productSlug: string;
+  minecraftUsername: string;
+  email: string;
+  phone?: string;
+}
+
+export interface OrderItemView {
+  productSlug: string | null;
+  productName: string;
+  unitPriceMinor: number;
+  quantity: number;
+}
+
+export interface OrderView {
+  publicId: string;
+  status: OrderStatus;
+  currency: Currency;
+  subtotalMinor: number;
+  totalMinor: number;
+  items: OrderItemView[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CheckoutResponse {
+  order: OrderView;
+  payment: {
+    billCode: string | null;
+    /** External ToyyibPay redirect URL. Null when the bill could not be created. */
+    redirectUrl: string | null;
+  };
+}
+
+export interface PaymentStatusView {
+  orderPublicId: string;
+  orderStatus: OrderStatus;
+  paymentStatus: PaymentStatus | null;
+}
+
+export interface RankComparisonRank {
+  slug: string;
+  name: string;
+  values: (string | number | boolean | null)[];
+}
+
+export interface RankComparison {
+  /** Ordered feature labels used as comparison rows. */
+  features: string[];
+  ranks: RankComparisonRank[];
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  startsAt: string | null;
+  endsAt: string | null;
 }

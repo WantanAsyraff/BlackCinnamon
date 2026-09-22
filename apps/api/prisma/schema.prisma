@@ -1,0 +1,261 @@
+// BlackCinnamon database schema.
+//
+// Money is always stored in minor units (e.g. sen for MYR). Product prices
+// and totals are authoritative only when produced by the backend.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Currency {
+  MYR
+}
+
+enum ProductType {
+  RANK
+  COSMETIC
+  OTHER
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+  CANCELLED
+}
+
+enum EntitlementType {
+  RANK
+  COSMETIC
+  OTHER
+}
+
+enum EntitlementStatus {
+  ACTIVE
+  PENDING_DELIVERY
+  EXPIRED
+  REVOKED
+}
+
+enum FulfilmentStatus {
+  PENDING
+  RETRYING
+  DELIVERED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  discordId    String?  @unique @map("discord_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  minecraftAccounts MinecraftAccount[]
+  orders            Order[]
+
+  @@map("users")
+}
+
+model MinecraftAccount {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String?   @map("user_id") @db.Uuid
+  username   String
+  uuid       String    @unique
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orders       Order[]
+  entitlements Entitlement[]
+
+  @@index([username])
+  @@map("minecraft_accounts")
+}
+
+model Product {
+  id          String      @id @default(uuid()) @db.Uuid
+  slug        String      @unique
+  name        String
+  description String
+  type        ProductType
+  priceMinor  Int         @map("price_minor")
+  currency    Currency    @default(MYR)
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  rank       Rank?
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Rank {
+  id              String @id @default(uuid()) @db.Uuid
+  productId       String @unique @map("product_id") @db.Uuid
+  permissionGroup String @map("permission_group")
+  durationSeconds Int?   @map("duration_seconds")
+  sortOrder       Int    @default(0) @map("sort_order")
+
+  product  Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  features RankFeature[]
+
+  @@map("ranks")
+}
+
+model RankFeature {
+  id        String @id @default(uuid()) @db.Uuid
+  rankId    String @map("rank_id") @db.Uuid
+  label     String
+  value     String
+  sortOrder Int    @default(0) @map("sort_order")
+
+  rank Rank @relation(fields: [rankId], references: [id], onDelete: Cascade)
+
+  @@map("rank_features")
+}
+
+model Order {
+  id                 String      @id @default(uuid()) @db.Uuid
+  publicId           String      @unique @map("public_id")
+  userId             String?     @map("user_id") @db.Uuid
+  minecraftAccountId String?     @map("minecraft_account_id") @db.Uuid
+  currency           Currency    @default(MYR)
+  subtotalMinor      Int         @map("subtotal_minor")
+  totalMinor         Int         @map("total_minor")
+  status             OrderStatus @default(PENDING_PAYMENT)
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+
+  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  minecraftAccount MinecraftAccount? @relation(fields: [minecraftAccountId], references: [id], onDelete: SetNull)
+  items            OrderItem[]
+  payments         Payment[]
+
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  String  @id @default(uuid()) @db.Uuid
+  orderId             String  @map("order_id") @db.Uuid
+  productId           String? @map("product_id") @db.Uuid
+  productNameSnapshot String  @map("product_name_snapshot")
+  unitPriceMinor      Int     @map("unit_price_minor")
+  quantity            Int     @default(1)
+
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  entitlements Entitlement[]
+
+  @@map("order_items")
+}
+
+model Payment {
+  id                String        @id @default(uuid()) @db.Uuid
+  orderId           String        @map("order_id") @db.Uuid
+  provider          String
+  providerBillCode  String?       @map("provider_bill_code")
+  providerReference String?       @map("provider_reference")
+  amountMinor       Int           @map("amount_minor")
+  currency          Currency      @default(MYR)
+  status            PaymentStatus @default(PENDING)
+  paidAt            DateTime?     @map("paid_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  order  Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  events PaymentEvent[]
+
+  @@unique([provider, providerReference])
+  @@index([orderId])
+  @@map("payments")
+}
+
+model PaymentEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  paymentId   String    @map("payment_id") @db.Uuid
+  provider    String
+  eventKey    String    @unique @map("event_key")
+  eventType   String    @map("event_type")
+  rawPayload  Json      @map("raw_payload")
+  verified    Boolean   @default(false)
+  processedAt DateTime? @map("processed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("payment_events")
+}
+
+model Entitlement {
+  id                 String            @id @default(uuid()) @db.Uuid
+  orderItemId        String            @map("order_item_id") @db.Uuid
+  minecraftAccountId String            @map("minecraft_account_id") @db.Uuid
+  type               EntitlementType
+  value              String
+  startsAt           DateTime?         @map("starts_at")
+  expiresAt          DateTime?         @map("expires_at")
+  status             EntitlementStatus @default(PENDING_DELIVERY)
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  orderItem        OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  minecraftAccount MinecraftAccount @relation(fields: [minecraftAccountId], references: [id], onDelete: Cascade)
+  fulfilmentJobs   FulfilmentJob[]
+
+  @@index([minecraftAccountId])
+  @@map("entitlements")
+}
+
+model FulfilmentJob {
+  id             String           @id @default(uuid()) @db.Uuid
+  entitlementId  String           @map("entitlement_id") @db.Uuid
+  serverId       String           @map("server_id")
+  action         String
+  status         FulfilmentStatus @default(PENDING)
+  attempts       Int              @default(0)
+  lastError      String?          @map("last_error")
+  acknowledgedAt DateTime?        @map("acknowledged_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  entitlement Entitlement @relation(fields: [entitlementId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("fulfilment_jobs")
+}
+
+model Announcement {
+  id        String    @id @default(uuid()) @db.Uuid
+  title     String
+  body      String
+  published Boolean   @default(false)
+  startsAt  DateTime? @map("starts_at")
+  endsAt    DateTime? @map("ends_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([published, startsAt])
+  @@map("announcements")
+}

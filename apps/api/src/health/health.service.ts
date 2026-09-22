@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { PostgresService } from '../infra/postgres/postgres.service';
+import { PrismaService } from '../infra/prisma/prisma.service';
 import { RedisService } from '../infra/redis/redis.service';
 
 export type DependencyStatus = 'up' | 'down';
@@ -22,7 +22,7 @@ export interface ReadinessResult {
 @Injectable()
 export class HealthService {
   constructor(
-    private readonly postgres: PostgresService,
+    private readonly prisma: PrismaService,
     private readonly redis: RedisService,
   ) {}
 
@@ -42,7 +42,7 @@ export class HealthService {
 
   async checkReadiness(): Promise<ReadinessResult> {
     const [postgres, redis] = await Promise.all([
-      this.checkDependency(() => this.postgres.ping()),
+      this.checkDependency(() => this.prisma.ping()),
       this.checkDependency(() => this.redis.ping()),
     ]);
 

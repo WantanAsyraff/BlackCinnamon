@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 
 import { HealthModule } from './health/health.module';
-import { PostgresModule } from './infra/postgres/postgres.module';
+import { PrismaModule } from './infra/prisma/prisma.module';
 import { RedisModule } from './infra/redis/redis.module';
 
 @Module({
-  imports: [PostgresModule, RedisModule, HealthModule],
+  imports: [PrismaModule, RedisModule, HealthModule],
 })
 export class AppModule {}
